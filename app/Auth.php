@@ -15,33 +15,40 @@ final class Auth
             return ['ok' => false, 'errors' => $errors];
         }
 
-        $pdo = db();
+        try {
+            $pdo = db();
 
-        $exists = $pdo->prepare('SELECT id FROM users WHERE email = :email OR username = :username LIMIT 1');
-        $exists->execute([
-            'email' => $email,
-            'username' => $username,
-        ]);
+            $exists = $pdo->prepare('SELECT id FROM users WHERE email = :email OR username = :username LIMIT 1');
+            $exists->execute([
+                'email' => $email,
+                'username' => $username,
+            ]);
 
-        if ($exists->fetch()) {
+            if ($exists->fetch()) {
+                return [
+                    'ok' => false,
+                    'errors' => ['An account with this email or username already exists.'],
+                ];
+            }
+
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+
+            $statement = $pdo->prepare(
+                'INSERT INTO users (username, email, password_hash, created_at) VALUES (:username, :email, :password_hash, NOW())'
+            );
+            $statement->execute([
+                'username' => $username,
+                'email' => $email,
+                'password_hash' => $passwordHash,
+            ]);
+
+            $this->loginSession((int) $pdo->lastInsertId(), $username, $email);
+        } catch (Throwable $exception) {
             return [
                 'ok' => false,
-                'errors' => ['An account with this email or username already exists.'],
+                'errors' => [$this->databaseErrorMessage($exception)],
             ];
         }
-
-        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
-
-        $statement = $pdo->prepare(
-            'INSERT INTO users (username, email, password_hash, created_at) VALUES (:username, :email, :password_hash, NOW())'
-        );
-        $statement->execute([
-            'username' => $username,
-            'email' => $email,
-            'password_hash' => $passwordHash,
-        ]);
-
-        $this->loginSession((int) $pdo->lastInsertId(), $username, $email);
 
         return ['ok' => true, 'errors' => []];
     }
@@ -62,9 +69,16 @@ final class Auth
             return ['ok' => false, 'errors' => $errors];
         }
 
-        $statement = db()->prepare('SELECT id, username, email, password_hash FROM users WHERE email = :email LIMIT 1');
-        $statement->execute(['email' => $email]);
-        $user = $statement->fetch();
+        try {
+            $statement = db()->prepare('SELECT id, username, email, password_hash FROM users WHERE email = :email LIMIT 1');
+            $statement->execute(['email' => $email]);
+            $user = $statement->fetch();
+        } catch (Throwable $exception) {
+            return [
+                'ok' => false,
+                'errors' => [$this->databaseErrorMessage($exception)],
+            ];
+        }
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
             return [
@@ -124,5 +138,32 @@ final class Auth
             'username' => $username,
             'email' => $email,
         ];
+    }
+
+    private function databaseErrorMessage(Throwable $exception): string
+    {
+        $message = $exception->getMessage();
+
+        if (str_contains($message, 'pdo_mysql')) {
+            return 'Database setup error: PHP PDO MySQL is not enabled. Create or edit your php.ini file and enable extension=pdo_mysql.';
+        }
+
+        if (str_contains($message, 'actively refused') || str_contains($message, '[2002]')) {
+            return 'Database connection error: MySQL is not running on the configured host and port. Start MySQL or update DB_HOST and DB_PORT in your environment.';
+        }
+
+        if (str_contains($message, 'Access denied') || str_contains($message, '[1045]')) {
+            return 'Database connection error: MySQL rejected the username or password. Update DB_USERNAME and DB_PASSWORD.';
+        }
+
+        if (str_contains($message, 'Unknown database') || str_contains($message, '[1049]')) {
+            return 'Database connection error: the trip_planner database does not exist yet. Import database/schema.sql first.';
+        }
+
+        if (str_contains($message, "doesn't exist") || str_contains($message, '[42S02]')) {
+            return 'Database connection error: the users table does not exist yet. Import database/schema.sql first.';
+        }
+
+        return 'Database connection error: ' . $message;
     }
 }

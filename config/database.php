@@ -17,6 +17,10 @@ function db(): PDO
         throw new RuntimeException('Only MySQL is configured for this first auth module.');
     }
 
+    if (!in_array('mysql', PDO::getAvailableDrivers(), true)) {
+        throw new RuntimeException('Database setup error: PDO MySQL is not enabled. Enable the pdo_mysql extension in your PHP configuration.');
+    }
+
     $dsn = sprintf(
         'mysql:host=%s;port=%s;dbname=%s;charset=%s',
         $db['host'],
