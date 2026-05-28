@@ -5,11 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../app/helpers.php';
 require_once __DIR__ . '/../../app/Adventure.php';
 
-require_auth();
+require_auth(); // Edycja podrozy wymaga logowania.
 
-$user = current_user();
-$adventureRepository = new Adventure();
-$id = (int) ($_REQUEST['adventure_id'] ?? $_REQUEST['id'] ?? 0);
+$user = current_user(); // Pobiera aktualnego uzytkownika.
+$adventureRepository = new Adventure(); // Tworzy obiekt zarzadzania podrozami.
+$id = (int) ($_REQUEST['adventure_id'] ?? $_REQUEST['id'] ?? 0); // Pobiera ID podrozy z GET lub POST.
 $errors = [];
 
 if ($id <= 0) {
@@ -18,7 +18,7 @@ if ($id <= 0) {
 }
 
 try {
-    $adventure = $id > 0 ? $adventureRepository->findForUser($id, (int) $user['id']) : null;
+    $adventure = $id > 0 ? $adventureRepository->findForUser($id, (int) $user['id']) : null; // Laduje tylko podroz nalezaca do uzytkownika.
 } catch (Throwable $exception) {
     $adventure = null;
     flash('error', $adventureRepository->databaseErrorMessage($exception));
@@ -31,17 +31,18 @@ if (!$adventure && $errors === []) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sprawdza token CSRF przed aktualizacja podrozy.
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please try again.';
     } else {
-        $result = $adventureRepository->update($id, (int) $user['id'], $_POST);
+        $result = $adventureRepository->update($id, (int) $user['id'], $_POST); // Aktualizuje podroz i zapisuje nowy snapshot pogody.
 
         if ($result['ok']) {
             foreach ($result['warnings'] ?? [] as $warning) {
                 flash('error', $warning);
             }
 
-            redirect('/dashboard.php?status=updated');
+            redirect('/dashboard.php?status=updated'); // Po edycji wraca na dashboard.
         }
 
         $errors = $result['errors'];

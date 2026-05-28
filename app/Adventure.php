@@ -7,6 +7,7 @@ require_once __DIR__ . '/WeatherSnapshot.php';
 
 final class Adventure
 {
+    // Funkcja dla pobrania wszystkich podrozy zalogowanego uzytkownika.
     public function listForUser(int $userId): array
     {
         try {
@@ -24,6 +25,7 @@ final class Adventure
         }
     }
 
+    // Funkcja dla pobrania jednej podrozy nalezacej do uzytkownika.
     public function findForUser(int $id, int $userId): ?array
     {
         $statement = db()->prepare(
@@ -41,6 +43,7 @@ final class Adventure
         return $adventure ?: null;
     }
 
+    // Funkcja dla utworzenia nowej podrozy i zapisania snapshotu pogody.
     public function create(int $userId, array $data): array
     {
         $title = trim((string) ($data['title'] ?? ''));
@@ -50,7 +53,7 @@ final class Adventure
         $description = trim((string) ($data['description'] ?? ''));
         $latitude = trim((string) ($data['latitude'] ?? ''));
         $longitude = trim((string) ($data['longitude'] ?? ''));
-        $errors = $this->validate($title, $destinationRegion, $startDate, $endDate, $description, $latitude, $longitude);
+        $errors = $this->validate($title, $destinationRegion, $startDate, $endDate, $description, $latitude, $longitude); // Waliduje dane podrozy przed zapisem.
 
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors];
@@ -73,8 +76,8 @@ final class Adventure
                 'latitude' => $latitude,
                 'longitude' => $longitude,
             ]);
-            $adventureId = (int) db()->lastInsertId();
-            $snapshotResult = (new WeatherSnapshot())->saveForAdventure($adventureId, $latitude, $longitude);
+            $adventureId = (int) db()->lastInsertId(); // Pobiera ID nowo utworzonej podrozy.
+            $snapshotResult = (new WeatherSnapshot())->saveForAdventure($adventureId, $latitude, $longitude); // Zapisuje pogode dla wybranego punktu.
 
             if (!$snapshotResult['ok']) {
                 $warnings = $snapshotResult['errors'];
@@ -86,6 +89,7 @@ final class Adventure
         return ['ok' => true, 'errors' => [], 'warnings' => $warnings];
     }
 
+    // Funkcja dla aktualizacji istniejacej podrozy i zapisania nowego snapshotu pogody.
     public function update(int $id, int $userId, array $data): array
     {
         $title = trim((string) ($data['title'] ?? ''));
@@ -131,7 +135,7 @@ final class Adventure
                 return ['ok' => false, 'errors' => ['Adventure was not found.']];
             }
 
-            $snapshotResult = (new WeatherSnapshot())->saveForAdventure($id, $latitude, $longitude);
+            $snapshotResult = (new WeatherSnapshot())->saveForAdventure($id, $latitude, $longitude); // Zapisuje aktualna pogode po zmianie punktu podrozy.
 
             if (!$snapshotResult['ok']) {
                 $warnings = $snapshotResult['errors'];
@@ -143,6 +147,7 @@ final class Adventure
         return ['ok' => true, 'errors' => [], 'warnings' => $warnings];
     }
 
+    // Funkcja dla usuniecia podrozy uzytkownika.
     public function delete(int $id, int $userId): array
     {
         try {
@@ -162,6 +167,7 @@ final class Adventure
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla walidacji danych podrozy.
     private function validate(string $title, string $destinationRegion, string $startDate, string $endDate, string $description, string $latitude, string $longitude): array
     {
         $errors = [];
@@ -201,6 +207,7 @@ final class Adventure
         return array_values(array_unique($errors));
     }
 
+    // Funkcja dla konwersji daty z bazy do formatu input datetime-local.
     public function toDateTimeLocal(?string $dateTime): string
     {
         if (!$dateTime) {
@@ -212,6 +219,7 @@ final class Adventure
         return $timestamp ? date('Y-m-d\TH:i', $timestamp) : '';
     }
 
+    // Funkcja dla formatowania daty podrozy do wyswietlania.
     public function formatDateTime(?string $dateTime): string
     {
         if (!$dateTime) {
@@ -223,6 +231,7 @@ final class Adventure
         return $timestamp ? date('M j, Y H:i', $timestamp) : $dateTime;
     }
 
+    // Funkcja dla zamiany wartosci z input datetime-local na format MySQL DATETIME.
     private function normalizeDateTime(string $dateTime): string
     {
         if ($dateTime === '') {
@@ -238,6 +247,7 @@ final class Adventure
         return $dateTime;
     }
 
+    // Funkcja dla sprawdzenia czy tekst jest poprawna data i godzina.
     private function isDateTime(string $dateTime): bool
     {
         if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $dateTime) !== 1) {
@@ -247,6 +257,7 @@ final class Adventure
         return strtotime($dateTime) !== false;
     }
 
+    // Funkcja dla zamiany bledow bazy na zrozumiale komunikaty.
     public function databaseErrorMessage(Throwable $exception): string
     {
         $message = $exception->getMessage();

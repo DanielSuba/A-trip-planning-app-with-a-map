@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../app/Auth.php';
 
-require_guest();
+require_guest(); // Zalogowany uzytkownik nie powinien widziec formularza logowania.
 
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sprawdza token CSRF przed proba logowania.
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please try again.';
     } else {
-        $auth = new Auth();
+        $auth = new Auth(); // Tworzy obiekt obslugi logowania.
         $result = $auth->login(
             trim((string) ($_POST['email'] ?? '')),
             (string) ($_POST['password'] ?? '')
         );
 
         if ($result['ok']) {
-            redirect('/dashboard.php');
+            redirect('/dashboard.php'); // Po poprawnym logowaniu przechodzi na dashboard.
         }
 
         $errors = $result['errors'];

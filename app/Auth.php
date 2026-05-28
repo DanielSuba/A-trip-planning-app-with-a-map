@@ -11,9 +11,10 @@ final class Auth
     private const AVATAR_PUBLIC_DIR = '/uploads/avatars';
     private const MAX_AVATAR_SIZE = 2097152;
 
+    // Funkcja dla rejestracji nowego uzytkownika.
     public function register(string $username, string $email, string $password, string $confirmPassword): array
     {
-        $errors = $this->validateRegistration($username, $email, $password, $confirmPassword);
+        $errors = $this->validateRegistration($username, $email, $password, $confirmPassword); // Sprawdza dane formularza rejestracji.
 
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors];
@@ -35,7 +36,7 @@ final class Auth
                 ];
             }
 
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT); // Haszuje haslo przed zapisem do bazy.
 
             $statement = $pdo->prepare(
                 'INSERT INTO users (username, email, password_hash, created_at) VALUES (:username, :email, :password_hash, NOW())'
@@ -57,6 +58,7 @@ final class Auth
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla logowania uzytkownika.
     public function login(string $email, string $password): array
     {
         $errors = [];
@@ -91,11 +93,12 @@ final class Auth
             ];
         }
 
-        $this->loginSession((int) $user['id'], $user['username'], $user['email'], $user['avatar_path'] ?? null);
+        $this->loginSession((int) $user['id'], $user['username'], $user['email'], $user['avatar_path'] ?? null); // Zapisuje dane uzytkownika w sesji.
 
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla zmiany hasla zalogowanego uzytkownika.
     public function changePassword(int $userId, string $currentPassword, string $newPassword, string $confirmPassword): array
     {
         $errors = [];
@@ -125,7 +128,7 @@ final class Auth
 
             $statement = db()->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id');
             $statement->execute([
-                'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+                'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT), // Zapisuje nowe haslo jako hash.
                 'id' => $userId,
             ]);
         } catch (Throwable $exception) {
@@ -135,6 +138,7 @@ final class Auth
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla aktualizacji avatara uzytkownika.
     public function updateAvatar(int $userId, array $file): array
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -168,8 +172,8 @@ final class Auth
         }
 
         $filename = sprintf('user-%d-%s.%s', $userId, bin2hex(random_bytes(8)), $extensions[$mimeType]);
-        $targetPath = self::AVATAR_UPLOAD_DIR . DIRECTORY_SEPARATOR . $filename;
-        $publicPath = self::AVATAR_PUBLIC_DIR . '/' . $filename;
+        $targetPath = self::AVATAR_UPLOAD_DIR . DIRECTORY_SEPARATOR . $filename; // Sciezka zapisu pliku na dysku.
+        $publicPath = self::AVATAR_PUBLIC_DIR . '/' . $filename; // Sciezka dostepna dla przegladarki.
 
         if (!move_uploaded_file($tmpName, $targetPath)) {
             return ['ok' => false, 'errors' => ['Avatar could not be saved.']];
@@ -194,6 +198,7 @@ final class Auth
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla usuniecia konta uzytkownika.
     public function deleteAccount(int $userId, string $currentPassword): array
     {
         if ($currentPassword === '') {
@@ -209,8 +214,8 @@ final class Auth
 
             $statement = db()->prepare('DELETE FROM users WHERE id = :id');
             $statement->execute(['id' => $userId]);
-            $this->deleteAvatarFile($user['avatar_path'] ?? null);
-            $this->logout();
+            $this->deleteAvatarFile($user['avatar_path'] ?? null); // Usuwa plik avatara po usunieciu konta.
+            $this->logout(); // Czysci sesje po usunieciu konta.
         } catch (Throwable $exception) {
             return ['ok' => false, 'errors' => [$this->databaseErrorMessage($exception)]];
         }
@@ -218,10 +223,11 @@ final class Auth
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla wylogowania uzytkownika.
     public function logout(): void
     {
         start_session();
-        $_SESSION = [];
+        $_SESSION = []; // Czysci dane sesji.
 
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
@@ -231,6 +237,7 @@ final class Auth
         session_destroy();
     }
 
+    // Funkcja dla walidacji danych rejestracji.
     private function validateRegistration(string $username, string $email, string $password, string $confirmPassword): array
     {
         $errors = [];
@@ -254,6 +261,7 @@ final class Auth
         return $errors;
     }
 
+    // Funkcja dla odswiezenia danych uzytkownika zapisanych w sesji.
     public function refreshSessionUser(int $userId): void
     {
         $user = $this->findUserById($userId);
@@ -263,6 +271,7 @@ final class Auth
         }
     }
 
+    // Funkcja dla znalezienia uzytkownika po ID.
     private function findUserById(int $userId): ?array
     {
         $statement = db()->prepare('SELECT id, username, email, password_hash, avatar_path FROM users WHERE id = :id LIMIT 1');
@@ -272,10 +281,11 @@ final class Auth
         return $user ?: null;
     }
 
+    // Funkcja dla zapisania danych logowania w sesji.
     private function loginSession(int $id, string $username, string $email, ?string $avatarPath = null): void
     {
         start_session();
-        session_regenerate_id(true);
+        session_regenerate_id(true); // Chroni przed session fixation po logowaniu.
 
         $_SESSION['user'] = [
             'id' => $id,
@@ -285,6 +295,7 @@ final class Auth
         ];
     }
 
+    // Funkcja dla usuniecia pliku avatara z katalogu publicznego.
     private function deleteAvatarFile(?string $avatarPath): void
     {
         if (!$avatarPath || !str_starts_with($avatarPath, self::AVATAR_PUBLIC_DIR . '/')) {
@@ -298,6 +309,7 @@ final class Auth
         }
     }
 
+    // Funkcja dla zamiany wyjatkow bazy danych na czytelne komunikaty.
     private function databaseErrorMessage(Throwable $exception): string
     {
         $message = $exception->getMessage();

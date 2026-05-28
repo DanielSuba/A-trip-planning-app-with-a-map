@@ -23,6 +23,25 @@ body {
     background: linear-gradient(135deg, #ffffff 0%, var(--bg) 54%, #e8f4fb 100%);
 }
 
+body.dashboard-background {
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(245, 247, 251, 0) 0, rgba(245, 247, 251, 0) 230px, #f5f7fb 430px),
+        url("https://marketplace.canva.com/MADBPd7Ob4s/1/thumbnail_large-1/canva-nature-landscape-MADBPd7Ob4s.jpg") top center / 100% 240px no-repeat,
+        #f5f7fb;
+}
+
+body.dashboard-background::before,
+body.dashboard-background::after {
+    content: none;
+}
+
+body.dashboard-background .app-header,
+body.dashboard-background .dashboard-shell {
+    position: relative;
+    z-index: 1;
+}
+
 a {
     color: #0369a1;
     font-weight: 700;
@@ -666,6 +685,13 @@ button.danger-button:focus-visible {
 }
 
 @media (max-width: 860px) {
+    body.dashboard-background {
+        background:
+            linear-gradient(180deg, rgba(245, 247, 251, 0) 0, rgba(245, 247, 251, 0) 260px, #f5f7fb 350px),
+            url("https://marketplace.canva.com/MADBPd7Ob4s/1/thumbnail_large-1/canva-nature-landscape-MADBPd7Ob4s.jpg") top center / auto 350px no-repeat,
+            #f5f7fb;
+    }
+
     .adventure-grid,
     .adventure-create-layout {
         grid-template-columns: repeat(2, minmax(0, 1fr));

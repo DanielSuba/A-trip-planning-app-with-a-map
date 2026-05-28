@@ -5,11 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../app/helpers.php';
 require_once __DIR__ . '/../../app/Adventure.php';
 
-require_auth();
+require_auth(); // Usuwanie podrozy wymaga logowania.
 
-$user = current_user();
-$adventureRepository = new Adventure();
-$id = (int) ($_REQUEST['adventure_id'] ?? $_REQUEST['id'] ?? 0);
+$user = current_user(); // Pobiera aktualnego uzytkownika.
+$adventureRepository = new Adventure(); // Tworzy obiekt zarzadzania podrozami.
+$id = (int) ($_REQUEST['adventure_id'] ?? $_REQUEST['id'] ?? 0); // Pobiera ID usuwanej podrozy.
 $errors = [];
 
 if ($id <= 0) {
@@ -18,12 +18,13 @@ if ($id <= 0) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sprawdza token CSRF przed usunieciem podrozy.
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         flash('error', 'Your session expired. Please try again.');
         redirect('/dashboard.php');
     }
 
-    $result = $adventureRepository->delete($id, (int) $user['id']);
+    $result = $adventureRepository->delete($id, (int) $user['id']); // Usuwa podroz tylko jesli nalezy do uzytkownika.
 
     if ($result['ok']) {
         flash('success', 'Trip was deleted successfully.');

@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../app/Auth.php';
 
-require_guest();
+require_guest(); // Blokuje dostep do rejestracji dla zalogowanego uzytkownika.
 
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sprawdza token CSRF przed obsluga formularza rejestracji.
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please try again.';
     } else {
-        $auth = new Auth();
+        $auth = new Auth(); // Tworzy obiekt obslugi autoryzacji.
         $result = $auth->register(
             trim((string) ($_POST['username'] ?? '')),
             trim((string) ($_POST['email'] ?? '')),
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         if ($result['ok']) {
-            redirect('/dashboard.php');
+            redirect('/dashboard.php'); // Po rejestracji przenosi uzytkownika na dashboard.
         }
 
         $errors = $result['errors'];

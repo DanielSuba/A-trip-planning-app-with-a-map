@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../app/Auth.php';
 
-require_auth();
+require_auth(); // Profil jest dostepny tylko dla zalogowanego uzytkownika.
 
-$auth = new Auth();
-$user = current_user();
+$auth = new Auth(); // Tworzy obiekt obslugi konta uzytkownika.
+$user = current_user(); // Pobiera dane uzytkownika z sesji.
 $errors = [];
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sprawdza token CSRF przed zmiana profilu.
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please try again.';
     } else {
-        $action = (string) ($_POST['action'] ?? '');
+        $action = (string) ($_POST['action'] ?? ''); // Okresla, ktora akcja profilu ma byc wykonana.
 
         if ($action === 'change_password') {
             $result = $auth->changePassword(

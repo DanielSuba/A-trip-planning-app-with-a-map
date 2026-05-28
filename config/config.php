@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-$envPath = __DIR__ . '/../.env';
+$envPath = __DIR__ . '/../.env'; // Sciezka do pliku z lokalnymi zmiennymi srodowiskowymi.
 
 if (is_file($envPath)) {
-    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES); // Czyta plik .env linia po linii.
 
     foreach ($lines ?: [] as $line) {
         $line = trim($line);
@@ -15,15 +15,16 @@ if (is_file($envPath)) {
         }
 
         [$key, $value] = array_map('trim', explode('=', $line, 2));
-        $value = trim($value, "\"'");
+        $value = trim($value, "\"'"); // Usuwa cudzyslowy z wartosci zmiennej.
 
         if (getenv($key) === false) {
-            putenv($key . '=' . $value);
-            $_ENV[$key] = $value;
+            putenv($key . '=' . $value); // Dodaje zmienna do srodowiska PHP.
+            $_ENV[$key] = $value; // Udostepnia zmienna takze w tablicy $_ENV.
         }
     }
 }
 
+// Glowne ustawienia aplikacji.
 return [
     'app_name' => 'Trip Planner',
     'db' => [

@@ -5,24 +5,25 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../app/helpers.php';
 require_once __DIR__ . '/../../app/Adventure.php';
 
-require_auth();
+require_auth(); // Tworzenie podrozy wymaga logowania.
 
-$user = current_user();
+$user = current_user(); // Pobiera uzytkownika, do ktorego zostanie przypisana podroz.
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Sprawdza token CSRF przed zapisem podrozy.
     if (!verify_csrf_token($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Please try again.';
     } else {
-        $adventureRepository = new Adventure();
-        $result = $adventureRepository->create((int) $user['id'], $_POST);
+        $adventureRepository = new Adventure(); // Tworzy obiekt zarzadzania podrozami.
+        $result = $adventureRepository->create((int) $user['id'], $_POST); // Zapisuje podroz i snapshot pogody.
 
         if ($result['ok']) {
             foreach ($result['warnings'] ?? [] as $warning) {
                 flash('error', $warning);
             }
 
-            redirect('/dashboard.php?status=created');
+            redirect('/dashboard.php?status=created'); // Po zapisie wraca na liste podrozy.
         }
 
         $errors = $result['errors'];

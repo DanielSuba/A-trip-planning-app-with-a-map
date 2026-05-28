@@ -6,15 +6,17 @@ require_once __DIR__ . '/../config/database.php';
 
 final class WeatherSnapshot
 {
+    // Funkcja dla zapisania pogody do tabeli weather_snapshots dla podanej podrozy.
     public function saveForAdventure(int $adventureId, string $latitude, string $longitude): array
     {
         try {
-            $forecast = $this->fetchNearestForecast($latitude, $longitude);
+            $forecast = $this->fetchNearestForecast($latitude, $longitude); // Pobiera najblizsza prognoze z OpenWeatherMap.
 
             if (!$forecast) {
                 return ['ok' => false, 'errors' => ['No OpenWeatherMap forecast data was returned.']];
             }
 
+            // Zapisuje snapshot pogody powiazany z adventure_id.
             $statement = db()->prepare(
                 'INSERT INTO weather_snapshots
                     (adventure_id, temperature, weather_main, weather_description, humidity, wind_speed, forecast_for, created_at)
@@ -37,10 +39,11 @@ final class WeatherSnapshot
         return ['ok' => true, 'errors' => []];
     }
 
+    // Funkcja dla pobrania najblizszej prognozy z OpenWeatherMap.
     private function fetchNearestForecast(string $latitude, string $longitude): ?array
     {
-        $config = require __DIR__ . '/../config/config.php';
-        $apiKey = $config['openweather']['api_key'] ?? '';
+        $config = require __DIR__ . '/../config/config.php'; // Pobiera konfiguracje aplikacji.
+        $apiKey = $config['openweather']['api_key'] ?? ''; // Pobiera klucz API z .env.
 
         if ($apiKey === '' || $apiKey === 'PUT_API_KEY_HERE') {
             throw new RuntimeException('OpenWeatherMap API key is not configured.');
@@ -57,6 +60,7 @@ final class WeatherSnapshot
             'units' => 'metric',
             'lang' => 'pl',
         ]);
+        // Ustawia timeout, zeby request do API nie blokowal aplikacji zbyt dlugo.
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
@@ -76,7 +80,7 @@ final class WeatherSnapshot
         }
 
         $data = json_decode($response, true);
-        $forecast = is_array($data['list'] ?? null) ? ($data['list'][0] ?? null) : null;
+        $forecast = is_array($data['list'] ?? null) ? ($data['list'][0] ?? null) : null; // Bierze pierwsza najblizsza prognoze.
 
         if (!is_array($forecast)) {
             return null;
@@ -92,6 +96,7 @@ final class WeatherSnapshot
         ];
     }
 
+    // Funkcja dla przygotowania czytelnego komunikatu bledu zapisu pogody.
     private function errorMessage(Throwable $exception): string
     {
         $message = $exception->getMessage();

@@ -5,21 +5,21 @@ declare(strict_types=1);
 require_once __DIR__ . '/../app/helpers.php';
 require_once __DIR__ . '/../app/Adventure.php';
 
-require_auth();
+require_auth(); // Dashboard jest dostepny tylko po zalogowaniu.
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 
-$user = current_user();
-$adventureRepository = new Adventure();
-$adventureResult = $adventureRepository->listForUser((int) $user['id']);
+$user = current_user(); // Pobiera aktualnego uzytkownika z sesji.
+$adventureRepository = new Adventure(); // Tworzy obiekt do pracy z podrozami.
+$adventureResult = $adventureRepository->listForUser((int) $user['id']); // Pobiera podroze tylko tego uzytkownika.
 $adventures = $adventureResult['adventures'];
 $errors = $adventureResult['errors'];
 $now = date('Y-m-d H:i:s');
-$plannedAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] >= $now));
-$pastAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] < $now));
-$flashErrors = consume_flash('error');
-$flashSuccess = consume_flash('success');
+$plannedAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] >= $now)); // Oddziela przyszle/aktywne podroze.
+$pastAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] < $now)); // Oddziela zakonczone podroze.
+$flashErrors = consume_flash('error'); // Pobiera jednorazowe bledy po przekierowaniu.
+$flashSuccess = consume_flash('success'); // Pobiera jednorazowe komunikaty sukcesu.
 $notice = match ($_GET['status'] ?? '') {
     'created' => 'Trip was created successfully.',
     'updated' => 'Trip was updated successfully.',
@@ -35,7 +35,7 @@ $notice = match ($_GET['status'] ?? '') {
     <title>Account | Trip Planner</title>
     <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
-<body>
+<body class="dashboard-background">
     <header class="app-header">
         <div>
             <p class="eyebrow">Trip Planner Dashboard</p>
@@ -72,7 +72,7 @@ $notice = match ($_GET['status'] ?? '') {
         <section class="dashboard-toolbar" aria-labelledby="adventures-title">
             <div>
                 <h2 id="adventures-title">Trips</h2>
-                <p class="muted">All planned and past trips saved in your account.</p>
+                <p class="muted">All planned trips in your account.</p>
             </div>
             <a class="button-link" href="/adventures/create.php">+ Create New Adventure</a>
         </section>

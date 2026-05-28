@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 header('Content-Type: application/json');
 
-$config = require __DIR__ . '/../../config/config.php';
-$apiKey = $config['openweather']['api_key'] ?? '';
-$lat = filter_input(INPUT_GET, 'lat', FILTER_VALIDATE_FLOAT);
-$lon = filter_input(INPUT_GET, 'lon', FILTER_VALIDATE_FLOAT);
+$config = require __DIR__ . '/../../config/config.php'; // Pobiera konfiguracje z kluczem OpenWeatherMap.
+$apiKey = $config['openweather']['api_key'] ?? ''; // Pobiera klucz API z konfiguracji.
+$lat = filter_input(INPUT_GET, 'lat', FILTER_VALIDATE_FLOAT); // Pobiera szerokosc geograficzna z URL.
+$lon = filter_input(INPUT_GET, 'lon', FILTER_VALIDATE_FLOAT); // Pobiera dlugosc geograficzna z URL.
 
 if ($apiKey === '') {
     http_response_code(500);
@@ -33,14 +33,14 @@ if ($lat === false || $lat === null || $lon === false || $lon === null) {
     exit;
 }
 
-$query = http_build_query([
+$query = http_build_query([ // Buduje parametry zapytania do OpenWeatherMap.
     'lat' => $lat,
     'lon' => $lon,
     'appid' => $apiKey,
     'units' => 'metric',
     'lang' => 'pl',
 ]);
-$url = 'https://api.openweathermap.org/data/2.5/forecast?' . $query;
+$url = 'https://api.openweathermap.org/data/2.5/forecast?' . $query; // Endpoint prognozy z polem pop.
 $context = stream_context_create([
     'http' => [
         'method' => 'GET',
@@ -48,8 +48,8 @@ $context = stream_context_create([
         'ignore_errors' => true,
     ],
 ]);
-$response = @file_get_contents($url, false, $context);
-$statusLine = $http_response_header[0] ?? '';
+$response = @file_get_contents($url, false, $context); // Wykonuje zapytanie HTTP do OpenWeatherMap.
+$statusLine = $http_response_header[0] ?? ''; // Pobiera status odpowiedzi API.
 
 if ($response === false) {
     http_response_code(502);
