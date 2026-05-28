@@ -16,7 +16,11 @@ $id = (int) ($_POST['id'] ?? 0);
 
 if ($id > 0) {
     $adventureRepository = new Adventure();
-    $adventureRepository->delete($id, (int) $user['id']);
+    $result = $adventureRepository->delete($id, (int) $user['id']);
+
+    if ($result['ok']) {
+        redirect('/dashboard.php?status=deleted');
+    }
 }
 
 redirect('/dashboard.php');

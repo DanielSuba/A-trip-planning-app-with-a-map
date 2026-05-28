@@ -19,3 +19,7 @@ Get-Content database\migrations\002_create_adventures_table.sql | mysql -u root
 If your adventures table was created before start/end dates were added, run this migration too:
 
 Get-Content database\migrations\003_update_adventures_trip_dates.sql | mysql -u root
+
+If your adventures table was created before trip time selection was added, run this migration too:
+
+Get-Content database\migrations\004_update_adventures_datetime.sql | mysql -u root

@@ -12,9 +12,15 @@ $adventureRepository = new Adventure();
 $adventureResult = $adventureRepository->listForUser((int) $user['id']);
 $adventures = $adventureResult['adventures'];
 $errors = $adventureResult['errors'];
-$today = date('Y-m-d');
-$plannedAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] >= $today));
-$pastAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] < $today));
+$now = date('Y-m-d H:i:s');
+$plannedAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] >= $now));
+$pastAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] < $now));
+$notice = match ($_GET['status'] ?? '') {
+    'created' => 'Trip was created successfully.',
+    'updated' => 'Trip was updated successfully.',
+    'deleted' => 'Trip was deleted successfully.',
+    default => '',
+};
 ?>
 <!doctype html>
 <html lang="en">
@@ -50,6 +56,10 @@ $pastAdventures = array_values(array_filter($adventures, static fn (array $adven
     </header>
 
     <main class="dashboard-shell">
+        <?php if ($notice !== ''): ?>
+            <div class="notice" role="status"><?= e($notice) ?></div>
+        <?php endif; ?>
+
         <section class="dashboard-toolbar" aria-labelledby="adventures-title">
             <div>
                 <h2 id="adventures-title">Trips</h2>
@@ -81,7 +91,7 @@ $pastAdventures = array_values(array_filter($adventures, static fn (array $adven
                 <?php foreach ($plannedAdventures as $adventure): ?>
                     <article class="adventure-card">
                         <div class="card-topline">
-                            <span><?= e(date('M j, Y', strtotime($adventure['start_date']))) ?> - <?= e(date('M j, Y', strtotime($adventure['end_date']))) ?></span>
+                            <span><?= e($adventureRepository->formatDateTime($adventure['start_date'])) ?> - <?= e($adventureRepository->formatDateTime($adventure['end_date'])) ?></span>
                             <span><?= e($adventure['destination_region']) ?></span>
                         </div>
                         <h3><?= e($adventure['title']) ?></h3>
@@ -91,7 +101,7 @@ $pastAdventures = array_values(array_filter($adventures, static fn (array $adven
                             <form method="post" action="/adventures/delete.php">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="id" value="<?= e((string) $adventure['id']) ?>">
-                                <button type="submit" class="small-danger-button">Delete</button>
+                                <button type="submit" class="small-danger-button" onclick="return confirm('Delete this trip?')">Delete</button>
                             </form>
                         </div>
                     </article>
@@ -108,7 +118,7 @@ $pastAdventures = array_values(array_filter($adventures, static fn (array $adven
                 <?php foreach ($pastAdventures as $adventure): ?>
                     <article class="adventure-card">
                         <div class="card-topline">
-                            <span><?= e(date('M j, Y', strtotime($adventure['start_date']))) ?> - <?= e(date('M j, Y', strtotime($adventure['end_date']))) ?></span>
+                            <span><?= e($adventureRepository->formatDateTime($adventure['start_date'])) ?> - <?= e($adventureRepository->formatDateTime($adventure['end_date'])) ?></span>
                             <span><?= e($adventure['destination_region']) ?></span>
                         </div>
                         <h3><?= e($adventure['title']) ?></h3>
@@ -118,7 +128,7 @@ $pastAdventures = array_values(array_filter($adventures, static fn (array $adven
                             <form method="post" action="/adventures/delete.php">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="id" value="<?= e((string) $adventure['id']) ?>">
-                                <button type="submit" class="small-danger-button">Delete</button>
+                                <button type="submit" class="small-danger-button" onclick="return confirm('Delete this trip?')">Delete</button>
                             </form>
                         </div>
                     </article>

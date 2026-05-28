@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $adventureRepository->update($id, (int) $user['id'], $_POST);
 
         if ($result['ok']) {
-            redirect('/dashboard.php');
+            redirect('/dashboard.php?status=updated');
         }
 
         $errors = $result['errors'];
@@ -85,12 +85,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="date-row">
                         <div>
-                            <label for="start_date">Start Date</label>
-                            <input id="start_date" name="start_date" type="date" required value="<?= e((string) ($adventure['start_date'] ?? '')) ?>">
+                            <label for="start_date">Start Date and Time</label>
+                            <input id="start_date" name="start_date" type="datetime-local" required value="<?= e($adventureRepository->toDateTimeLocal((string) ($adventure['start_date'] ?? ''))) ?>">
                         </div>
                         <div>
-                            <label for="end_date">End Date</label>
-                            <input id="end_date" name="end_date" type="date" required value="<?= e((string) ($adventure['end_date'] ?? '')) ?>">
+                            <label for="end_date">End Date and Time</label>
+                            <input id="end_date" name="end_date" type="datetime-local" required value="<?= e($adventureRepository->toDateTimeLocal((string) ($adventure['end_date'] ?? ''))) ?>">
                         </div>
                     </div>
 

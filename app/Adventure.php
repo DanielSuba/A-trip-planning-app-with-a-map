@@ -44,8 +44,8 @@ final class Adventure
     {
         $title = trim((string) ($data['title'] ?? ''));
         $destinationRegion = trim((string) ($data['destination_region'] ?? ''));
-        $startDate = trim((string) ($data['start_date'] ?? ''));
-        $endDate = trim((string) ($data['end_date'] ?? ''));
+        $startDate = $this->normalizeDateTime(trim((string) ($data['start_date'] ?? '')));
+        $endDate = $this->normalizeDateTime(trim((string) ($data['end_date'] ?? '')));
         $description = trim((string) ($data['description'] ?? ''));
         $latitude = trim((string) ($data['latitude'] ?? ''));
         $longitude = trim((string) ($data['longitude'] ?? ''));
@@ -81,8 +81,8 @@ final class Adventure
     {
         $title = trim((string) ($data['title'] ?? ''));
         $destinationRegion = trim((string) ($data['destination_region'] ?? ''));
-        $startDate = trim((string) ($data['start_date'] ?? ''));
-        $endDate = trim((string) ($data['end_date'] ?? ''));
+        $startDate = $this->normalizeDateTime(trim((string) ($data['start_date'] ?? '')));
+        $endDate = $this->normalizeDateTime(trim((string) ($data['end_date'] ?? '')));
         $description = trim((string) ($data['description'] ?? ''));
         $latitude = trim((string) ($data['latitude'] ?? ''));
         $longitude = trim((string) ($data['longitude'] ?? ''));
@@ -157,16 +157,16 @@ final class Adventure
             $errors[] = 'Destination country or region is required and must be 255 characters or fewer.';
         }
 
-        if (!$this->isDate($startDate)) {
-            $errors[] = 'Start date is required.';
+        if (!$this->isDateTime($startDate)) {
+            $errors[] = 'Start date and time are required.';
         }
 
-        if (!$this->isDate($endDate)) {
-            $errors[] = 'End date is required.';
+        if (!$this->isDateTime($endDate)) {
+            $errors[] = 'End date and time are required.';
         }
 
-        if ($this->isDate($startDate) && $this->isDate($endDate) && $endDate < $startDate) {
-            $errors[] = 'End date cannot be earlier than start date.';
+        if ($this->isDateTime($startDate) && $this->isDateTime($endDate) && strtotime($endDate) < strtotime($startDate)) {
+            $errors[] = 'End date and time cannot be earlier than start date and time.';
         }
 
         if ($description === '') {
@@ -184,9 +184,50 @@ final class Adventure
         return array_values(array_unique($errors));
     }
 
-    private function isDate(string $date): bool
+    public function toDateTimeLocal(?string $dateTime): string
     {
-        return $date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1;
+        if (!$dateTime) {
+            return '';
+        }
+
+        $timestamp = strtotime($dateTime);
+
+        return $timestamp ? date('Y-m-d\TH:i', $timestamp) : '';
+    }
+
+    public function formatDateTime(?string $dateTime): string
+    {
+        if (!$dateTime) {
+            return '';
+        }
+
+        $timestamp = strtotime($dateTime);
+
+        return $timestamp ? date('M j, Y H:i', $timestamp) : $dateTime;
+    }
+
+    private function normalizeDateTime(string $dateTime): string
+    {
+        if ($dateTime === '') {
+            return '';
+        }
+
+        $dateTime = str_replace('T', ' ', $dateTime);
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $dateTime) === 1) {
+            return $dateTime . ':00';
+        }
+
+        return $dateTime;
+    }
+
+    private function isDateTime(string $dateTime): bool
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $dateTime) !== 1) {
+            return false;
+        }
+
+        return strtotime($dateTime) !== false;
     }
 
     private function databaseErrorMessage(Throwable $exception): string
@@ -199,6 +240,10 @@ final class Adventure
 
         if (str_contains($message, 'Unknown column')) {
             return 'Database setup error: the adventures table needs the latest fields. Import database/migrations/003_update_adventures_trip_dates.sql.';
+        }
+
+        if (str_contains($message, 'Incorrect date') || str_contains($message, 'Incorrect datetime') || str_contains($message, 'Data truncated')) {
+            return 'Database setup error: start_date and end_date must be DATETIME columns. Import database/migrations/004_update_adventures_datetime.sql.';
         }
 
         if (str_contains($message, 'Unknown database') || str_contains($message, '[1049]')) {
