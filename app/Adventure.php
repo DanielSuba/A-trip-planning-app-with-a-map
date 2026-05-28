@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/WeatherSnapshot.php';
 
 final class Adventure
 {
@@ -55,6 +56,8 @@ final class Adventure
             return ['ok' => false, 'errors' => $errors];
         }
 
+        $warnings = [];
+
         try {
             $statement = db()->prepare(
                 'INSERT INTO adventures (user_id, title, destination_region, start_date, end_date, description, latitude, longitude, created_at)
@@ -70,11 +73,17 @@ final class Adventure
                 'latitude' => $latitude,
                 'longitude' => $longitude,
             ]);
+            $adventureId = (int) db()->lastInsertId();
+            $snapshotResult = (new WeatherSnapshot())->saveForAdventure($adventureId, $latitude, $longitude);
+
+            if (!$snapshotResult['ok']) {
+                $warnings = $snapshotResult['errors'];
+            }
         } catch (Throwable $exception) {
             return ['ok' => false, 'errors' => [$this->databaseErrorMessage($exception)]];
         }
 
-        return ['ok' => true, 'errors' => []];
+        return ['ok' => true, 'errors' => [], 'warnings' => $warnings];
     }
 
     public function update(int $id, int $userId, array $data): array
@@ -91,6 +100,8 @@ final class Adventure
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors];
         }
+
+        $warnings = [];
 
         try {
             $statement = db()->prepare(
@@ -119,11 +130,17 @@ final class Adventure
             if ($statement->rowCount() === 0 && $this->findForUser($id, $userId) === null) {
                 return ['ok' => false, 'errors' => ['Adventure was not found.']];
             }
+
+            $snapshotResult = (new WeatherSnapshot())->saveForAdventure($id, $latitude, $longitude);
+
+            if (!$snapshotResult['ok']) {
+                $warnings = $snapshotResult['errors'];
+            }
         } catch (Throwable $exception) {
             return ['ok' => false, 'errors' => [$this->databaseErrorMessage($exception)]];
         }
 
-        return ['ok' => true, 'errors' => []];
+        return ['ok' => true, 'errors' => [], 'warnings' => $warnings];
     }
 
     public function delete(int $id, int $userId): array

@@ -43,13 +43,21 @@
         }
 
         const temperature = data.temperature === null ? 'No data' : `${data.temperature}&deg;C`;
-        const description = data.description || 'No data';
+        const humidity = data.humidity === null ? 'No data' : `${data.humidity}%`;
+        const windSpeed = data.windSpeed === null ? 'No data' : `${data.windSpeed} m/s`;
+        const adventureId = weatherBox.dataset.adventureId || 'not saved yet';
 
         weatherBox.innerHTML = `
             <strong>Weather for selected region</strong>
-            <span>Chance of rain: ${data.chancePercent}%</span>
-            <span>Temperature: ${temperature}</span>
-            <span>Weather: ${description}</span>
+            <span>adventure_id: ${adventureId}</span>
+            <span>temperature: ${temperature}</span>
+            <span>weather_main: ${data.weatherMain || 'No data'}</span>
+            <span>weather_description: ${data.weatherDescription || 'No data'}</span>
+            <span>humidity: ${humidity}</span>
+            <span>wind_speed: ${windSpeed}</span>
+            <span>chance of rain: ${data.chancePercent}%</span>
+            <span>forecast_for: ${data.forecastFor || 'No data'}</span>
+            <span>created_at: ${data.createdAt}</span>
         `;
     }
 
@@ -75,7 +83,12 @@
         return {
             chancePercent: typeof forecast.pop === 'number' ? Math.round(forecast.pop * 100) : 0,
             temperature: typeof forecast.main?.temp === 'number' ? Math.round(forecast.main.temp) : null,
-            description: forecast.weather?.[0]?.description || ''
+            weatherMain: forecast.weather?.[0]?.main || '',
+            weatherDescription: forecast.weather?.[0]?.description || '',
+            humidity: typeof forecast.main?.humidity === 'number' ? forecast.main.humidity : null,
+            windSpeed: typeof forecast.wind?.speed === 'number' ? forecast.wind.speed : null,
+            forecastFor: forecast.dt_txt || '',
+            createdAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
         };
     }
 

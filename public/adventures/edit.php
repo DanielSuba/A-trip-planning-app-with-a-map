@@ -37,6 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $adventureRepository->update($id, (int) $user['id'], $_POST);
 
         if ($result['ok']) {
+            foreach ($result['warnings'] ?? [] as $warning) {
+                flash('error', $warning);
+            }
+
             redirect('/dashboard.php?status=updated');
         }
 
@@ -120,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p class="muted">Click the map to update the trip point and check weather.</p>
                 </div>
                 <div id="adventureMap" class="leaflet-map"></div>
-                <div id="selectedPointWeather" class="selected-point-weather" aria-live="polite"></div>
+                <div id="selectedPointWeather" class="selected-point-weather" data-adventure-id="<?= e((string) $id) ?>" aria-live="polite"></div>
             </section>
         </form>
     </main>
