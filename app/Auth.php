@@ -7,6 +7,10 @@ require_once __DIR__ . '/helpers.php';
 
 final class Auth
 {
+    private const AVATAR_UPLOAD_DIR = __DIR__ . '/../public/uploads/avatars';
+    private const AVATAR_PUBLIC_DIR = '/uploads/avatars';
+    private const MAX_AVATAR_SIZE = 2097152;
+
     public function register(string $username, string $email, string $password, string $confirmPassword): array
     {
         $errors = $this->validateRegistration($username, $email, $password, $confirmPassword);
@@ -70,7 +74,7 @@ final class Auth
         }
 
         try {
-            $statement = db()->prepare('SELECT id, username, email, password_hash FROM users WHERE email = :email LIMIT 1');
+            $statement = db()->prepare('SELECT id, username, email, password_hash, avatar_path FROM users WHERE email = :email LIMIT 1');
             $statement->execute(['email' => $email]);
             $user = $statement->fetch();
         } catch (Throwable $exception) {
@@ -87,7 +91,129 @@ final class Auth
             ];
         }
 
-        $this->loginSession((int) $user['id'], $user['username'], $user['email']);
+        $this->loginSession((int) $user['id'], $user['username'], $user['email'], $user['avatar_path'] ?? null);
+
+        return ['ok' => true, 'errors' => []];
+    }
+
+    public function changePassword(int $userId, string $currentPassword, string $newPassword, string $confirmPassword): array
+    {
+        $errors = [];
+
+        if ($currentPassword === '') {
+            $errors[] = 'Current password is required.';
+        }
+
+        if (strlen($newPassword) < 8) {
+            $errors[] = 'New password must be at least 8 characters.';
+        }
+
+        if ($newPassword !== $confirmPassword) {
+            $errors[] = 'New password confirmation does not match.';
+        }
+
+        if ($errors !== []) {
+            return ['ok' => false, 'errors' => $errors];
+        }
+
+        try {
+            $user = $this->findUserById($userId);
+
+            if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
+                return ['ok' => false, 'errors' => ['Current password is incorrect.']];
+            }
+
+            $statement = db()->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id');
+            $statement->execute([
+                'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+                'id' => $userId,
+            ]);
+        } catch (Throwable $exception) {
+            return ['ok' => false, 'errors' => [$this->databaseErrorMessage($exception)]];
+        }
+
+        return ['ok' => true, 'errors' => []];
+    }
+
+    public function updateAvatar(int $userId, array $file): array
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return ['ok' => false, 'errors' => ['Please choose an avatar image.']];
+        }
+
+        if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+            return ['ok' => false, 'errors' => ['Avatar upload failed. Please try again.']];
+        }
+
+        if (($file['size'] ?? 0) > self::MAX_AVATAR_SIZE) {
+            return ['ok' => false, 'errors' => ['Avatar must be 2 MB or smaller.']];
+        }
+
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        $imageInfo = $tmpName !== '' ? @getimagesize($tmpName) : false;
+        $mimeType = is_array($imageInfo) ? ($imageInfo['mime'] ?? '') : '';
+        $extensions = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/gif' => 'gif',
+        ];
+
+        if (!isset($extensions[$mimeType])) {
+            return ['ok' => false, 'errors' => ['Avatar must be a JPG, PNG, WebP, or GIF image.']];
+        }
+
+        if (!is_dir(self::AVATAR_UPLOAD_DIR) && !mkdir(self::AVATAR_UPLOAD_DIR, 0755, true)) {
+            return ['ok' => false, 'errors' => ['Avatar folder could not be created.']];
+        }
+
+        $filename = sprintf('user-%d-%s.%s', $userId, bin2hex(random_bytes(8)), $extensions[$mimeType]);
+        $targetPath = self::AVATAR_UPLOAD_DIR . DIRECTORY_SEPARATOR . $filename;
+        $publicPath = self::AVATAR_PUBLIC_DIR . '/' . $filename;
+
+        if (!move_uploaded_file($tmpName, $targetPath)) {
+            return ['ok' => false, 'errors' => ['Avatar could not be saved.']];
+        }
+
+        try {
+            $user = $this->findUserById($userId);
+            $statement = db()->prepare('UPDATE users SET avatar_path = :avatar_path WHERE id = :id');
+            $statement->execute([
+                'avatar_path' => $publicPath,
+                'id' => $userId,
+            ]);
+
+            $this->deleteAvatarFile($user['avatar_path'] ?? null);
+            $this->refreshSessionUser($userId);
+        } catch (Throwable $exception) {
+            $this->deleteAvatarFile($publicPath);
+
+            return ['ok' => false, 'errors' => [$this->databaseErrorMessage($exception)]];
+        }
+
+        return ['ok' => true, 'errors' => []];
+    }
+
+    public function deleteAccount(int $userId, string $currentPassword): array
+    {
+        if ($currentPassword === '') {
+            return ['ok' => false, 'errors' => ['Current password is required to delete your account.']];
+        }
+
+        try {
+            $user = $this->findUserById($userId);
+
+            if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
+                return ['ok' => false, 'errors' => ['Current password is incorrect.']];
+            }
+
+            $statement = db()->prepare('DELETE FROM users WHERE id = :id');
+            $statement->execute(['id' => $userId]);
+            $this->deleteAvatarFile($user['avatar_path'] ?? null);
+            $this->logout();
+        } catch (Throwable $exception) {
+            return ['ok' => false, 'errors' => [$this->databaseErrorMessage($exception)]];
+        }
 
         return ['ok' => true, 'errors' => []];
     }
@@ -128,7 +254,25 @@ final class Auth
         return $errors;
     }
 
-    private function loginSession(int $id, string $username, string $email): void
+    public function refreshSessionUser(int $userId): void
+    {
+        $user = $this->findUserById($userId);
+
+        if ($user) {
+            $this->loginSession((int) $user['id'], $user['username'], $user['email'], $user['avatar_path'] ?? null);
+        }
+    }
+
+    private function findUserById(int $userId): ?array
+    {
+        $statement = db()->prepare('SELECT id, username, email, password_hash, avatar_path FROM users WHERE id = :id LIMIT 1');
+        $statement->execute(['id' => $userId]);
+        $user = $statement->fetch();
+
+        return $user ?: null;
+    }
+
+    private function loginSession(int $id, string $username, string $email, ?string $avatarPath = null): void
     {
         start_session();
         session_regenerate_id(true);
@@ -137,7 +281,21 @@ final class Auth
             'id' => $id,
             'username' => $username,
             'email' => $email,
+            'avatar_path' => $avatarPath,
         ];
+    }
+
+    private function deleteAvatarFile(?string $avatarPath): void
+    {
+        if (!$avatarPath || !str_starts_with($avatarPath, self::AVATAR_PUBLIC_DIR . '/')) {
+            return;
+        }
+
+        $fullPath = __DIR__ . '/../public' . $avatarPath;
+
+        if (is_file($fullPath)) {
+            unlink($fullPath);
+        }
     }
 
     private function databaseErrorMessage(Throwable $exception): string
@@ -162,6 +320,10 @@ final class Auth
 
         if (str_contains($message, "doesn't exist") || str_contains($message, '[42S02]')) {
             return 'Database connection error: the users table does not exist yet. Import database/schema.sql first.';
+        }
+
+        if (str_contains($message, 'Unknown column') && str_contains($message, 'avatar_path')) {
+            return 'Database setup error: the users table is missing avatar_path. Import database/migrations/001_add_avatar_path_to_users.sql.';
         }
 
         return 'Database connection error: ' . $message;
