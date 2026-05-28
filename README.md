@@ -23,3 +23,11 @@ Get-Content database\migrations\003_update_adventures_trip_dates.sql | mysql -u 
 If your adventures table was created before trip time selection was added, run this migration too:
 
 Get-Content database\migrations\004_update_adventures_datetime.sql | mysql -u root
+
+If migrations were run partly and MySQL reports duplicate columns, run the repair migration:
+
+Get-Content database\migrations\005_repair_adventures_table.sql | mysql -u root
+
+If trips cannot be edited or deleted because adventure ids are NULL, run:
+
+Get-Content database\migrations\006_fix_adventures_primary_id.sql | mysql -u root

@@ -9,17 +9,24 @@ require_auth();
 
 $user = current_user();
 $adventureRepository = new Adventure();
-$id = isset($_GET['id']) ? (int) $_GET['id'] : (int) ($_POST['id'] ?? 0);
+$id = (int) ($_REQUEST['adventure_id'] ?? $_REQUEST['id'] ?? 0);
 $errors = [];
+
+if ($id <= 0) {
+    flash('error', 'Trip id is missing. Refresh the dashboard and try again.');
+    redirect('/dashboard.php');
+}
 
 try {
     $adventure = $id > 0 ? $adventureRepository->findForUser($id, (int) $user['id']) : null;
 } catch (Throwable $exception) {
     $adventure = null;
-    $errors[] = 'Adventure could not be loaded.';
+    flash('error', $adventureRepository->databaseErrorMessage($exception));
+    redirect('/dashboard.php');
 }
 
 if (!$adventure && $errors === []) {
+    flash('error', 'Trip was not found.');
     redirect('/dashboard.php');
 }
 
@@ -70,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post" action="/adventures/edit.php" class="adventure-create-layout">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="id" value="<?= e((string) $id) ?>">
+            <input type="hidden" name="adventure_id" value="<?= e((string) $id) ?>">
             <input id="latitude" name="latitude" type="hidden" value="<?= e((string) ($adventure['latitude'] ?? '')) ?>">
             <input id="longitude" name="longitude" type="hidden" value="<?= e((string) ($adventure['longitude'] ?? '')) ?>">
 

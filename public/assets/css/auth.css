@@ -173,9 +173,47 @@ button.danger-button:focus-visible {
     font-size: 0.9rem;
 }
 
+.small-neutral-button {
+    min-height: 34px;
+    margin-top: 0;
+    padding: 0 12px;
+    border-radius: 6px;
+    background: #64748b;
+    font-size: 0.9rem;
+}
+
+.small-neutral-button:hover,
+.small-neutral-button:focus-visible {
+    background: var(--secondary-hover);
+    box-shadow: 0 8px 16px rgba(51, 65, 85, 0.16);
+}
+
 .small-danger-button:hover,
 .small-danger-button:focus-visible {
     background: #991b1b;
+    box-shadow: 0 8px 16px rgba(153, 27, 27, 0.16);
+}
+
+.small-danger-link {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    border-radius: 6px;
+    color: #ffffff;
+    background: #dc2626;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.small-danger-link:hover,
+.small-danger-link:focus-visible {
+    color: #ffffff;
+    background: #991b1b;
+    transform: translateY(-1px);
     box-shadow: 0 8px 16px rgba(153, 27, 27, 0.16);
 }
 
@@ -399,6 +437,30 @@ button.danger-button:focus-visible {
     line-height: 1.55;
 }
 
+.clickable-card {
+    transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.clickable-card:hover,
+.clickable-card:focus-within {
+    border-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px rgba(22, 163, 74, 0.14);
+}
+
+.card-edit-link {
+    display: grid;
+    gap: 14px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.card-edit-link:hover,
+.card-edit-link:focus-visible {
+    color: inherit;
+    outline: none;
+}
+
 .trip-section {
     margin-top: 28px;
 }
@@ -415,6 +477,10 @@ button.danger-button:focus-visible {
 }
 
 .card-actions form {
+    margin: 0;
+}
+
+.inline-action-form {
     margin: 0;
 }
 
@@ -544,6 +610,47 @@ button.danger-button:focus-visible {
 .date-row > div {
     display: grid;
     gap: 10px;
+}
+
+.delete-panel {
+    width: min(100%, 640px);
+    display: grid;
+    gap: 18px;
+    padding: 24px;
+    border: 1px solid #fecdd3;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.delete-panel .muted {
+    margin-top: 0;
+}
+
+.delete-summary {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fbfdff;
+}
+
+.delete-summary p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.delete-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.delete-actions button,
+.delete-actions .button-link {
+    flex: 1;
+    margin-top: 0;
 }
 
 @media (max-width: 860px) {

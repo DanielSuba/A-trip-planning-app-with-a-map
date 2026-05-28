@@ -10,7 +10,7 @@ final class Adventure
     {
         try {
             $statement = db()->prepare(
-                'SELECT id, title, destination_region, start_date, end_date, description, latitude, longitude
+                'SELECT id, id AS adventure_id, title, destination_region, start_date, end_date, description, latitude, longitude
                  FROM adventures
                  WHERE user_id = :user_id
                  ORDER BY start_date ASC, created_at DESC'
@@ -26,7 +26,7 @@ final class Adventure
     public function findForUser(int $id, int $userId): ?array
     {
         $statement = db()->prepare(
-            'SELECT id, title, destination_region, start_date, end_date, description, latitude, longitude
+            'SELECT id, id AS adventure_id, title, destination_region, start_date, end_date, description, latitude, longitude
              FROM adventures
              WHERE id = :id AND user_id = :user_id
              LIMIT 1'
@@ -230,7 +230,7 @@ final class Adventure
         return strtotime($dateTime) !== false;
     }
 
-    private function databaseErrorMessage(Throwable $exception): string
+    public function databaseErrorMessage(Throwable $exception): string
     {
         $message = $exception->getMessage();
 

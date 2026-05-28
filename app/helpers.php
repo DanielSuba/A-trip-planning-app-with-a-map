@@ -67,3 +67,18 @@ function old(string $key, array $source): string
 
     return is_string($value) ? $value : '';
 }
+
+function flash(string $key, string $message): void
+{
+    start_session();
+    $_SESSION['flash'][$key][] = $message;
+}
+
+function consume_flash(string $key): array
+{
+    start_session();
+    $messages = $_SESSION['flash'][$key] ?? [];
+    unset($_SESSION['flash'][$key]);
+
+    return is_array($messages) ? $messages : [];
+}

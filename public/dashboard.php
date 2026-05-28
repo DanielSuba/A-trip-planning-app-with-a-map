@@ -7,6 +7,9 @@ require_once __DIR__ . '/../app/Adventure.php';
 
 require_auth();
 
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 $user = current_user();
 $adventureRepository = new Adventure();
 $adventureResult = $adventureRepository->listForUser((int) $user['id']);
@@ -15,6 +18,8 @@ $errors = $adventureResult['errors'];
 $now = date('Y-m-d H:i:s');
 $plannedAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] >= $now));
 $pastAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] < $now));
+$flashErrors = consume_flash('error');
+$flashSuccess = consume_flash('success');
 $notice = match ($_GET['status'] ?? '') {
     'created' => 'Trip was created successfully.',
     'updated' => 'Trip was updated successfully.',
@@ -56,6 +61,10 @@ $notice = match ($_GET['status'] ?? '') {
     </header>
 
     <main class="dashboard-shell">
+        <?php foreach ($flashSuccess as $message): ?>
+            <div class="notice" role="status"><?= e((string) $message) ?></div>
+        <?php endforeach; ?>
+
         <?php if ($notice !== ''): ?>
             <div class="notice" role="status"><?= e($notice) ?></div>
         <?php endif; ?>
@@ -68,8 +77,11 @@ $notice = match ($_GET['status'] ?? '') {
             <a class="button-link" href="/adventures/create.php">+ Create New Adventure</a>
         </section>
 
-        <?php if ($errors !== []): ?>
+        <?php if ($errors !== [] || $flashErrors !== []): ?>
             <div class="alert dashboard-alert" role="alert">
+                <?php foreach ($flashErrors as $error): ?>
+                    <p><?= e((string) $error) ?></p>
+                <?php endforeach; ?>
                 <?php foreach ($errors as $error): ?>
                     <p><?= e($error) ?></p>
                 <?php endforeach; ?>
@@ -89,18 +101,20 @@ $notice = match ($_GET['status'] ?? '') {
                 <?php endif; ?>
                 <div class="adventure-grid" aria-label="Planned trips list">
                 <?php foreach ($plannedAdventures as $adventure): ?>
-                    <article class="adventure-card">
-                        <div class="card-topline">
-                            <span><?= e($adventureRepository->formatDateTime($adventure['start_date'])) ?> - <?= e($adventureRepository->formatDateTime($adventure['end_date'])) ?></span>
-                            <span><?= e($adventure['destination_region']) ?></span>
-                        </div>
-                        <h3><?= e($adventure['title']) ?></h3>
-                        <p><?= e(strlen($adventure['description']) > 150 ? substr($adventure['description'], 0, 147) . '...' : $adventure['description']) ?></p>
+                    <?php $adventureId = (string) ($adventure['adventure_id'] ?? $adventure['id'] ?? ''); ?>
+                    <article class="adventure-card clickable-card">
+                        <a class="card-edit-link" href="/adventures/edit.php?adventure_id=<?= e($adventureId) ?>" aria-label="Edit <?= e($adventure['title']) ?>">
+                            <div class="card-topline">
+                                <span><?= e($adventureRepository->formatDateTime($adventure['start_date'])) ?> - <?= e($adventureRepository->formatDateTime($adventure['end_date'])) ?></span>
+                                <span><?= e($adventure['destination_region']) ?></span>
+                            </div>
+                            <h3><?= e($adventure['title']) ?></h3>
+                            <p><?= e(strlen($adventure['description']) > 150 ? substr($adventure['description'], 0, 147) . '...' : $adventure['description']) ?></p>
+                        </a>
                         <div class="card-actions">
-                            <a class="small-link-button" href="/adventures/edit.php?id=<?= e((string) $adventure['id']) ?>">Edit</a>
-                            <form method="post" action="/adventures/delete.php">
+                            <form method="post" action="/adventures/delete.php" class="inline-action-form">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="id" value="<?= e((string) $adventure['id']) ?>">
+                                <input type="hidden" name="adventure_id" value="<?= e($adventureId) ?>">
                                 <button type="submit" class="small-danger-button" onclick="return confirm('Delete this trip?')">Delete</button>
                             </form>
                         </div>
@@ -116,18 +130,20 @@ $notice = match ($_GET['status'] ?? '') {
                 <?php endif; ?>
                 <div class="adventure-grid" aria-label="Past trips list">
                 <?php foreach ($pastAdventures as $adventure): ?>
-                    <article class="adventure-card">
-                        <div class="card-topline">
-                            <span><?= e($adventureRepository->formatDateTime($adventure['start_date'])) ?> - <?= e($adventureRepository->formatDateTime($adventure['end_date'])) ?></span>
-                            <span><?= e($adventure['destination_region']) ?></span>
-                        </div>
-                        <h3><?= e($adventure['title']) ?></h3>
-                        <p><?= e(strlen($adventure['description']) > 150 ? substr($adventure['description'], 0, 147) . '...' : $adventure['description']) ?></p>
+                    <?php $adventureId = (string) ($adventure['adventure_id'] ?? $adventure['id'] ?? ''); ?>
+                    <article class="adventure-card clickable-card">
+                        <a class="card-edit-link" href="/adventures/edit.php?adventure_id=<?= e($adventureId) ?>" aria-label="Edit <?= e($adventure['title']) ?>">
+                            <div class="card-topline">
+                                <span><?= e($adventureRepository->formatDateTime($adventure['start_date'])) ?> - <?= e($adventureRepository->formatDateTime($adventure['end_date'])) ?></span>
+                                <span><?= e($adventure['destination_region']) ?></span>
+                            </div>
+                            <h3><?= e($adventure['title']) ?></h3>
+                            <p><?= e(strlen($adventure['description']) > 150 ? substr($adventure['description'], 0, 147) . '...' : $adventure['description']) ?></p>
+                        </a>
                         <div class="card-actions">
-                            <a class="small-link-button" href="/adventures/edit.php?id=<?= e((string) $adventure['id']) ?>">Edit</a>
-                            <form method="post" action="/adventures/delete.php">
+                            <form method="post" action="/adventures/delete.php" class="inline-action-form">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="id" value="<?= e((string) $adventure['id']) ?>">
+                                <input type="hidden" name="adventure_id" value="<?= e($adventureId) ?>">
                                 <button type="submit" class="small-danger-button" onclick="return confirm('Delete this trip?')">Delete</button>
                             </form>
                         </div>
