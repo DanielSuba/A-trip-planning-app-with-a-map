@@ -31,3 +31,7 @@ Get-Content database\migrations\005_repair_adventures_table.sql | mysql -u root
 If trips cannot be edited or deleted because adventure ids are NULL, run:
 
 Get-Content database\migrations\006_fix_adventures_primary_id.sql | mysql -u root
+
+Weather markers use OpenWeatherMap. Put your API key in `.env`:
+
+OPENWEATHER_API_KEY=your_api_key_here

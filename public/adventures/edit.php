@@ -117,9 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <section class="map-panel" aria-labelledby="map-title">
                 <div class="map-heading">
                     <h2 id="map-title">Choose location</h2>
-                    <p class="muted">Click the map to update the trip point.</p>
+                    <p class="muted">Click the map to update the trip point and check weather.</p>
                 </div>
                 <div id="adventureMap" class="leaflet-map"></div>
+                <div id="selectedPointWeather" class="selected-point-weather" aria-live="polite"></div>
             </section>
         </form>
     </main>
