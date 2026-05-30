@@ -127,12 +127,14 @@
         const startWeather = data.startWeather;
         const endWeather = data.endWeather;
         const adventureId = weatherBox.dataset.adventureId || 'not saved yet';
+        const warnings = Array.isArray(data.warnings) ? data.warnings : [];
         const startLine = startWeather
             ? `<span><strong>START:</strong> ${startWeather.chancePercent}% rain, ${startWeather.temperature}&deg;C, ${escapeHtml(startWeather.weatherDescription || 'No data')}, forecast_for: ${escapeHtml(startWeather.forecastFor || 'No data')}</span>`
             : '';
         const endLine = endWeather
             ? `<span><strong>END:</strong> ${endWeather.chancePercent}% rain, ${endWeather.temperature}&deg;C, ${escapeHtml(endWeather.weatherDescription || 'No data')}, forecast_for: ${escapeHtml(endWeather.forecastFor || 'No data')}</span>`
             : '';
+        const warningLines = warnings.map((warning) => `<span class="weather-warning">${escapeHtml(warning)}</span>`).join('');
         const createdAt = startWeather?.createdAt || endWeather?.createdAt || 'No data';
 
         weatherBox.innerHTML = `
@@ -140,6 +142,7 @@
             <span>adventure_id: ${adventureId}</span>
             ${startLine}
             ${endLine}
+            ${warningLines}
             <span>created_at: ${createdAt}</span>
         `;
     }
@@ -298,13 +301,14 @@
     async function updateWeatherForPoint(latitude, longitude) {
         renderWeatherBox('loading');
 
-        try {
-            const startDate = getStartDateValue();
-            const endDate = getEndDateValue();
-            const clickedLatLng = L.latLng(latitude, longitude);
-            const weatherItems = [];
+        const startDate = getStartDateValue();
+        const endDate = getEndDateValue();
+        const clickedLatLng = L.latLng(latitude, longitude);
+        const weatherItems = [];
+        const warnings = [];
 
-            if (startDate) {
+        if (startDate) {
+            try {
                 const startWeather = await fetchWeatherForecast(latitude, longitude, startDate, 'Start Date');
                 weatherItems.push({
                     ...startWeather,
@@ -312,9 +316,16 @@
                     emoji: startWeather.chancePercent === 0 ? '&#9728;&#65039;' : '&#127783;&#65039;',
                     clickedLatLng
                 });
+            } catch (error) {
+                console.error('Start weather failed:', error);
+                warnings.push(error.message || 'Start Date weather is unavailable.');
             }
+        } else {
+            warnings.push('Select Start Date to show the START weather marker.');
+        }
 
-            if (endDate) {
+        if (endDate) {
+            try {
                 const endWeather = await fetchWeatherForecast(latitude, longitude, endDate, 'End Date');
                 weatherItems.push({
                     ...endWeather,
@@ -322,17 +333,25 @@
                     emoji: endWeather.chancePercent === 0 ? '&#9728;&#65039;' : '&#127783;&#65039;',
                     clickedLatLng
                 });
+            } catch (error) {
+                console.error('End weather failed:', error);
+                warnings.push(error.message || 'End Date weather is unavailable.');
             }
+        } else {
+            warnings.push('End Date is not selected, so the END weather marker is hidden.');
+        }
 
+        try {
             if (weatherItems.length === 0) {
-                throw new Error('Select Start Date or End Date before checking weather.');
+                throw new Error(warnings[0] || 'Select Start Date or End Date before checking weather.');
             }
 
             lastWeatherClickLatLng = clickedLatLng;
             lastWeatherItems = weatherItems;
             renderWeatherBox('success', {
                 startWeather: weatherItems.find((item) => item.label === 'START') || null,
-                endWeather: weatherItems.find((item) => item.label === 'END') || null
+                endWeather: weatherItems.find((item) => item.label === 'END') || null,
+                warnings
             });
             renderWeatherMarkersNearClick(map, clickedLatLng, weatherItems);
         } catch (error) {

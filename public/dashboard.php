@@ -74,7 +74,10 @@ $notice = match ($_GET['status'] ?? '') {
                 <h2 id="adventures-title">Trips</h2>
                 <p class="muted">All planned trips in your account.</p>
             </div>
-            <a class="button-link" href="/adventures/create.php">+ Create New Adventure</a>
+            <div class="toolbar-actions">
+                <a class="button-link secondary-link" href="/recommendations.php">Recommendations</a>
+                <a class="button-link" href="/adventures/create.php">+ Create New Adventure</a>
+            </div>
         </section>
 
         <?php if ($errors !== [] || $flashErrors !== []): ?>
