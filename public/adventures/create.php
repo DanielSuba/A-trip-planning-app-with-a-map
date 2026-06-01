@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('error', $warning);
             }
 
-            redirect('/dashboard.php?status=created'); // Po zapisie wraca na liste podrozy.
+            redirect('/dashboard.php'); // Po zapisie wraca na liste podrozy.
         }
 
         $errors = $result['errors'];

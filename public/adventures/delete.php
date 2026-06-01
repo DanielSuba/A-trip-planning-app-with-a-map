@@ -27,8 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = $adventureRepository->delete($id, (int) $user['id']); // Usuwa podroz tylko jesli nalezy do uzytkownika.
 
     if ($result['ok']) {
-        flash('success', 'Trip was deleted successfully.');
-        redirect('/dashboard.php');
+    redirect('/dashboard.php');
     }
 
     foreach ($result['errors'] as $error) {

@@ -102,7 +102,7 @@ final class WeatherSnapshot
         $message = $exception->getMessage();
 
         if (str_contains($message, "doesn't exist") || str_contains($message, '[42S02]')) {
-            return 'Weather snapshot was not saved: import database/migrations/007_create_weather_snapshots_table.sql.';
+            return 'Weather information could not be saved.';
         }
 
         return 'Weather snapshot was not saved: ' . $message;

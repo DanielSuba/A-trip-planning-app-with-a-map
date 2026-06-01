@@ -407,6 +407,22 @@
         return data.description || '';
     }
 
+    async function fetchSavedWeatherDescription(tripId) {
+        const params = new URLSearchParams({
+            adventure_id: tripId
+        });
+        const response = await fetch(`/api/weather-description.php?${params.toString()}`);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Saved description could not be loaded.');
+        }
+
+        const data = await response.json();
+
+        return data.description || '';
+    }
+
     function DescriptionLoading() {
         return `
             <h2>Description</h2>
@@ -422,7 +438,7 @@
         `;
     }
 
-    function DescriptionContent(description, saved = false) {
+    function DescriptionContent(description, notice = '') {
         const paragraphs = String(description)
             .split(/\n+/)
             .map((paragraph) => paragraph.trim())
@@ -432,7 +448,6 @@
 
         return `
             <h2>Description</h2>
-            ${saved ? '<p class="notice inline-notice">Description was saved to weather_snapshots.</p>' : ''}
             <div class="description-text">${paragraphs || '<p>No description returned.</p>'}</div>
             <button type="button" class="description-button secondary-description-button" id="generateDescriptionButton">Generate Again</button>
         `;
@@ -453,8 +468,8 @@
         weatherDescriptionElement.innerHTML = DescriptionReady();
     }
 
-    function renderDescription(description, saved = false) {
-        weatherDescriptionElement.innerHTML = DescriptionContent(description, saved);
+    function renderDescription(description, notice = '') {
+        weatherDescriptionElement.innerHTML = DescriptionContent(description, notice);
     }
 
     function renderDescriptionError(message) {
@@ -466,10 +481,26 @@
 
         try {
             const description = await fetchAIWeatherDescription(trip, summary, dailyStats);
-            renderDescription(description, true);
+            renderDescription(description);
         } catch (error) {
             console.error('Weather description failed:', error);
             renderDescriptionError(error.message || 'Local AI description is unavailable.');
+        }
+    }
+
+    async function loadSavedDescription(tripId) {
+        try {
+            const description = await fetchSavedWeatherDescription(tripId);
+
+            if (description) {
+                renderDescription(description);
+                return;
+            }
+
+            renderDescriptionReady();
+        } catch (error) {
+            console.error('Saved weather description failed:', error);
+            renderDescriptionReady();
         }
     }
 
@@ -550,8 +581,9 @@
             renderStatsCards(analysis.summary, analysis.dailyStats);
             renderDailyWeatherList(analysis.dailyStats);
             renderCharts(analysis.dailyStats);
-            renderDescriptionReady();
+            renderDescriptionLoading();
             showContent();
+            loadSavedDescription(selectedAdventure.id);
 
             if (analysis.isPartialForecast) {
                 statusElement.hidden = false;

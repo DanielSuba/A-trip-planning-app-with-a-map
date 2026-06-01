@@ -193,12 +193,12 @@ try {
 } catch (Throwable $exception) {
     if (str_contains($exception->getMessage(), 'recommendation_description')) {
         http_response_code(500);
-        echo json_encode(['error' => 'Database setup error: add recommendation_description to weather_snapshots. Import database/migrations/008_add_recommendation_description_to_weather_snapshots.sql.']);
+        echo json_encode(['error' => 'Description could not be saved because the database is not ready.']);
         exit;
     }
 
     http_response_code(500);
-    echo json_encode(['error' => 'Description was generated but could not be saved to weather_snapshots.']);
+    echo json_encode(['error' => 'Description was generated but could not be saved.']);
     exit;
 }
 

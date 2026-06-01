@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('error', $warning);
             }
 
-            redirect('/dashboard.php?status=updated'); // Po edycji wraca na dashboard.
+            redirect('/dashboard.php'); // Po edycji wraca na dashboard.
         }
 
         $errors = $result['errors'];

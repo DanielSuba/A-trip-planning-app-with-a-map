@@ -19,13 +19,7 @@ $now = date('Y-m-d H:i:s');
 $plannedAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] >= $now)); // Oddziela przyszle/aktywne podroze.
 $pastAdventures = array_values(array_filter($adventures, static fn (array $adventure): bool => $adventure['end_date'] < $now)); // Oddziela zakonczone podroze.
 $flashErrors = consume_flash('error'); // Pobiera jednorazowe bledy po przekierowaniu.
-$flashSuccess = consume_flash('success'); // Pobiera jednorazowe komunikaty sukcesu.
-$notice = match ($_GET['status'] ?? '') {
-    'created' => 'Trip was created successfully.',
-    'updated' => 'Trip was updated successfully.',
-    'deleted' => 'Trip was deleted successfully.',
-    default => '',
-};
+consume_flash('success'); // Czyści stare komunikaty sukcesu bez wyswietlania ich na dashboardzie.
 ?>
 <!doctype html>
 <html lang="en">
@@ -61,14 +55,6 @@ $notice = match ($_GET['status'] ?? '') {
     </header>
 
     <main class="dashboard-shell">
-        <?php foreach ($flashSuccess as $message): ?>
-            <div class="notice" role="status"><?= e((string) $message) ?></div>
-        <?php endforeach; ?>
-
-        <?php if ($notice !== ''): ?>
-            <div class="notice" role="status"><?= e($notice) ?></div>
-        <?php endif; ?>
-
         <section class="dashboard-toolbar" aria-labelledby="adventures-title">
             <div>
                 <h2 id="adventures-title">Trips</h2>
