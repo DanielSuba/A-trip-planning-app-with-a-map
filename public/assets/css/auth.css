@@ -875,6 +875,37 @@ button.danger-button:focus-visible {
     margin-top: 0;
 }
 
+.description-text {
+    display: grid;
+    gap: 12px;
+    color: #334155;
+    line-height: 1.65;
+}
+
+.description-text p {
+    margin: 0;
+}
+
+.description-button {
+    width: fit-content;
+    min-width: 190px;
+    padding: 0 18px;
+}
+
+.secondary-description-button {
+    background: #64748b;
+}
+
+.secondary-description-button:hover,
+.secondary-description-button:focus-visible {
+    background: var(--secondary-hover);
+    box-shadow: 0 10px 20px rgba(51, 65, 85, 0.18);
+}
+
+.inline-notice {
+    margin-bottom: 0;
+}
+
 @media (max-width: 860px) {
     body.dashboard-background {
         background:

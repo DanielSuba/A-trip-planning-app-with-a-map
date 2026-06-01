@@ -103,7 +103,7 @@ $recommendationAdventures = array_map(static function (array $adventure): array 
                 </article>
             </section>
 
-            <section class="recommendations-section" id="aiRecommendations"></section>
+            <section class="recommendations-section" id="weatherDescription"></section>
         </section>
     </main>
 

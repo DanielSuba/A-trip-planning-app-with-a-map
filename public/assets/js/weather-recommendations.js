@@ -9,7 +9,8 @@
     const dailyWeatherListElement = document.getElementById('dailyWeatherList');
     const temperatureCanvas = document.getElementById('temperatureChart');
     const rainChanceCanvas = document.getElementById('rainChanceChart');
-    const aiRecommendationsElement = document.getElementById('aiRecommendations');
+    const weatherDescriptionElement = document.getElementById('weatherDescription');
+    let currentDescriptionPayload = null;
 
     if (!statusElement || !contentElement) {
         return;
@@ -383,15 +384,107 @@
         drawBarChart(rainChanceCanvas, labels, dailyStats.map((day) => day.avgRain), '#16a34a');
     }
 
-    function AIRecommendationsPlaceholder() {
+    async function fetchAIWeatherDescription(trip, summary, dailyStats) {
+        const response = await fetch('/api/ai-recommendations.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                trip,
+                summary,
+                dailyStats
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Could not load weather description.');
+        }
+
+        const data = await response.json();
+
+        return data.description || '';
+    }
+
+    function DescriptionLoading() {
         return `
-            <h2>AI Recommendations</h2>
-            <p class="muted">AI-based travel recommendations will be added here later.</p>
+            <h2>Description</h2>
+            <p class="muted">Generating local AI weather description...</p>
         `;
     }
 
-    function renderAIRecommendationsPlaceholder() {
-        aiRecommendationsElement.innerHTML = AIRecommendationsPlaceholder();
+    function DescriptionReady() {
+        return `
+            <h2>Description</h2>
+            <p class="muted">Click the button to generate and save a local AI recommendation for this trip.</p>
+            <button type="button" class="description-button" id="generateDescriptionButton">Generate Description</button>
+        `;
+    }
+
+    function DescriptionContent(description, saved = false) {
+        const paragraphs = String(description)
+            .split(/\n+/)
+            .map((paragraph) => paragraph.trim())
+            .filter(Boolean)
+            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+            .join('');
+
+        return `
+            <h2>Description</h2>
+            ${saved ? '<p class="notice inline-notice">Description was saved to weather_snapshots.</p>' : ''}
+            <div class="description-text">${paragraphs || '<p>No description returned.</p>'}</div>
+            <button type="button" class="description-button secondary-description-button" id="generateDescriptionButton">Generate Again</button>
+        `;
+    }
+
+    function DescriptionError(message) {
+        return `
+            <h2>Description</h2>
+            <p class="muted">${escapeHtml(message)}</p>
+        `;
+    }
+
+    function renderDescriptionLoading() {
+        weatherDescriptionElement.innerHTML = DescriptionLoading();
+    }
+
+    function renderDescriptionReady() {
+        weatherDescriptionElement.innerHTML = DescriptionReady();
+    }
+
+    function renderDescription(description, saved = false) {
+        weatherDescriptionElement.innerHTML = DescriptionContent(description, saved);
+    }
+
+    function renderDescriptionError(message) {
+        weatherDescriptionElement.innerHTML = DescriptionError(message);
+    }
+
+    async function loadDescription(trip, summary, dailyStats) {
+        renderDescriptionLoading();
+
+        try {
+            const description = await fetchAIWeatherDescription(trip, summary, dailyStats);
+            renderDescription(description, true);
+        } catch (error) {
+            console.error('Weather description failed:', error);
+            renderDescriptionError(error.message || 'Local AI description is unavailable.');
+        }
+    }
+
+    function setupDescriptionButton() {
+        weatherDescriptionElement.addEventListener('click', function (event) {
+            if (event.target?.id !== 'generateDescriptionButton' || !currentDescriptionPayload) {
+                return;
+            }
+
+            loadDescription(
+                currentDescriptionPayload.trip,
+                currentDescriptionPayload.summary,
+                currentDescriptionPayload.dailyStats
+            );
+        });
     }
 
     function analyzeForecast(forecastList, adventure) {
@@ -449,10 +542,15 @@
             const forecastList = await fetchForecastForLocation(selectedAdventure.latitude, selectedAdventure.longitude);
             const analysis = analyzeForecast(forecastList, selectedAdventure);
 
+            currentDescriptionPayload = {
+                trip: selectedAdventure,
+                summary: analysis.summary,
+                dailyStats: analysis.dailyStats
+            };
             renderStatsCards(analysis.summary, analysis.dailyStats);
             renderDailyWeatherList(analysis.dailyStats);
             renderCharts(analysis.dailyStats);
-            renderAIRecommendationsPlaceholder();
+            renderDescriptionReady();
             showContent();
 
             if (analysis.isPartialForecast) {
@@ -462,6 +560,7 @@
             }
         } catch (error) {
             console.error('Weather recommendations failed:', error);
+            currentDescriptionPayload = null;
             showStatus(error.message || 'Could not load weather recommendations.', 'error');
         }
     }
@@ -472,5 +571,6 @@
     }
 
     tripSelect.addEventListener('change', loadRecommendations);
+    setupDescriptionButton();
     loadRecommendations();
 })();

@@ -39,4 +39,9 @@ return [
     'openweather' => [
         'api_key' => getenv('OPENWEATHER_API_KEY') ?: '',
     ],
+    'lm_studio' => [
+        'api_url' => getenv('LM_STUDIO_API_URL') ?: 'http://127.0.0.1:1234/v1/chat/completions',
+        'api_key' => getenv('LM_STUDIO_API_KEY') ?: '',
+        'model' => getenv('LM_STUDIO_MODEL') ?: 'local-model',
+    ],
 ];
